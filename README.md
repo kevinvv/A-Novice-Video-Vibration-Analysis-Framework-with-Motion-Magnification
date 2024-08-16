@@ -1,22 +1,27 @@
 # Introduction
 This repo contains all the information needed to reproduce the experiments done in the paper *A Novice Video Vibration Analysis framework with Motion Magnification: Pipeline for Reproducible Evaluation*.
 
-<!-- TODO: check paper name at the end -->
-
 Before you start make sure you have all of the [Dependencies](#Dependencies) installed first. For an overview of the repo please refer to the [Structure](#Structure) chapter. 
 
-The rest of the repo is separated into two sections, [Data Collection](#data-collection) and [Data Processing](#data-processing) respectively. The Data Processing process relies on the data of the Data collection process. For more information please refer to the individual chapters.
+The rest of the repo is separated into the following sections:
 
 - [Data Collection](#data-collection)
+    - Video Capture Plan
+    - Video Capture Setup
+    - Experiment setup
 - [Data Processing](#data-processing)
+    - Preparation
+    - Preprocessing
+    - Motion Magnification
+    - PostProcessing
+    - Evaluation
+- [Examples](#examples)
+- [Bonus](#bonus)
 
-***The Pipeline***
-<!-- Might need a update -->
-![Overview](img/mmprocess.drawio.png)
-
+The examples chapter is just what you would expect. For replicating the experiments it is suggested to start with the Data Collection chapter. If you are only interested in using the code for your own goals the Data Processing chapter is the starting point for you. Some more insight into the thought process is given in the bonus chapter.
 
 ## Dependencies
-Before you start, you will have to install these dependencies
+Before you can start, you will have to install these dependencies
 
 - FFmpeg should be installed on the system
 - Cuda enabled system
@@ -27,11 +32,14 @@ Before you start, you will have to install these dependencies
 ## Structure
 Below is an overview of all the files and folders within the repo
 
+- examples (contains input and output examples)
+- img (images for readme)
 - resources (data)
     - input (input videos)
     - processed (pre processed videos)
     - magnified (magnified videos)
     - merged (compare videos)
+    - evaluated (output for data files)
     - temp (used by STB-VMM)
 - src (code)
     - utils.py (helper methods)
@@ -46,13 +54,14 @@ Below is an overview of all the files and folders within the repo
     - Evaluate.py (contains the evaluation process) 
 
 main.py (entry point for the code)
+RoI_select.py (used to create RoI for videos)
+results.py (used to generate overview from evaluation folder)
 README.md (you are here)
 
 ## Run
-
 execute the [main.py](main.py) in the terminal to start the process. Look at the [main.py](main.py) file if you want to see how it works.
 
-As of now it does not contain any args but there are variables you can change in the file. 
+As of now, it does not contain any args but there are variables you can change in the file. 
 
 # Data Collection
 This chapter contains information on how the data for the paper has been collected. First, we will describe the [Video Collection Setup](#video-collection-setup) used to collect the data after which the [experiments](#experiment-setups) are outlined. 
@@ -64,8 +73,6 @@ First, we will go over the advised [Workflow](#workflow). Keeping track of the d
 
 ### Workflow & Video Capture plan
 Before you start with the Video Collection Process, it is advised that you make a Video Capture Plan. In this chapter, we will go over how you could make this and what to take into account. The following questions could help guide you to make a plan:
-
-<!-- TODO: review these questionns, extend on them, put in appendix if paper -->
 
 - What is the goal of your experiment?
 - What kind of video shots do you need for this goal?
@@ -191,22 +198,10 @@ For our tests we have used [VCS2](#vcs2). See the images blow for the final setu
 | ![alt text](img/5F7EB371-F414-45ED-993F-C221599DD652_1_102_o.jpeg) |![alt text](img/68AABE7C-45AE-459E-BFD0-A58E46239010_1_102_o.jpeg) |
 
 
-<!-- ### TODO: Cooler Setup -->
-
 # Data Processing
 This chapter contains information on the Data Processing process used in the paper. It assumes data from the Data Collection process is used. The following major steps are included:
 
-- [x] [Preparation](#preparation)
-- [x] [preprocessing](#preprocessing)    
-- [x] [Motion Magnification](#motion-magnification)
-- [x] [PostProcessing](#postprocessing)
-- [x] [Evaluation](#evaluation)
-
 ## Preparation
-
-- [x] Input Preparation
-- [x] ROI selection
-- [x] Backup-original
 
 ### Input Preparation
 For this setup, we assume that data is available as per the requirements of the [collection process](#data-collection). In this step, we will organize the video data in such a way that future processing will be as easy as possible and we won't lose track of which video is what. 
@@ -223,7 +218,7 @@ The [resources/input folder](resources/input) will be used for the input prepara
 for i in *.MP4; do ffmpeg -y -r 50 -i  "$i" -c:v libx264 -profile:v high -vf scale=-640:420 -preset slow -crf 23 -an "${i%.*}_compressed.mp4"; done
 ```
 
-If you are working with videos that have a different framerate, which can be checked with ffprobe "filename", you might want to make the framerates of the video the same. We made every video 50 fps. The video is playback speed not recording speed.
+If you are working with videos that have a different framerate, which can be checked with ffprobe "filename", you might want to make the framerates of the video the same. We made every video 50 fps. The video  playback is changed but the original frames are not lost.
 
 ```bash
 ffmpeg -y -r 50 -i IMG_5192.MOV -an IMG_5192_50.MOV
@@ -241,31 +236,36 @@ ffmpeg -y -r 50 -i IMG_5192.MOV -an IMG_5192_50.MOV
 > - resources
 >   - input
 >       - tuning
->           - tuning_experiment.md
->           - temp-measure.csv
->           - overview
->               - light-100
->                   - displacement.csv
->               - light-0
->           - zoom-top
->               - light-100
->                   - displacement.csv
->               - light-0
->           - zoom-bottom
->               - light-100
->                   - displacement.csv
->               - light-0
-
-
-<!-- TODO: check where this nameing and folder structure fits -->
-<!-- A run's execution, results in a video and related data. This video is manipulated and used to extract metrics. It is essential that videos are not accidentally confused with each other and that the related data is associated with the right video. A naming convention and folder structure have been designed to aid the organisation of data during all of the data processing done in this research.
-
-The initial organisation involves a folder structure (Table~\ref{table:folderstructure}) that segregates the data of various process stages. This setup enables the code to exclusively utilise data from the relevant process stage while offering a convenient way for researchers to locate the information they need promptly. The input folder is the sole directory that is manually populated, while the remaining folders are automatically populated with results from different process steps. A step-by-step guide on how the input folder should be organised, including examples, can be found in Appendix \ref{Appendix:i}. 
-
-The organisation's second component is the naming convention utilised. When arranging the folders, the video names do not require modification. The initial stage of the automated process involves extracting metadata from the folder structure and videos to produce a new filename automatically. The name's prefix consists of the folder names in which it resides, separated by an underscore. The filename suffix includes the video frame rate, video resolution, and file extension. This approach provides all the necessary information on the spot. If needed, we can consult the newly created JSON file alongside the video file with the same name to access more detailed metadata information about the original video.
-
-During the execution of our methods, new video files and accompanying data are generated. To maintain the link to the initial video, we have opted to consistently include the complete name of the original video and subsequently append an additional suffix for any newly created files. This process is reiterated if new files are generated based on these. Please refer to Appendix \ref{Appendix:i} for a comprehensive overview of the various segments utilised in our naming conventions. -->
-
+>           - hz32
+>               - 250fps
+>                   - video
+>                   - RoI selection                    
+>               - 500fps
+>                   - video
+>                   - RoI selection
+>               - 1000fps
+>                   - video
+>                   - RoI selection
+>           - hz64
+>               - 250fps
+>                   - video
+>                   - RoI selection
+>               - 500fps
+>                   - video
+>                   - RoI selection
+>               - 1000fps
+>                   - video
+>                   - RoI selection
+>           - hz128
+>               - 250fps
+>                   - video
+>                   - RoI selection
+>               - 500fps
+>                   - video
+>                   - RoI selection
+>               - 1000fps
+>                   - video
+>                   - RoI selection
 
 ### RoI selection
 Next, the RoI can be selected using the RoI\_select.py script. The script requires the name of the experiment via the -en parameter, and the data should be available in the process folder. When the script is executed, a window will display a frame of the video. By clicking and dragging, a bounding box can be created to define the RoI. Pressing enter after selecting a region, and repeating this process for each video frame, will establish the RoI for each video. 
@@ -276,8 +276,6 @@ Next, the RoI can be selected using the RoI\_select.py script. The script requir
 
 *** It is a good practice to select an area that is slightly larger than the subject if possible. This allows for a greater chance to find features to track ***
 
-<!-- # Set up parameters for ShiTomasi corner detection
-# Set up parameters for Lucas-Kanade optical flow -->
 
 ### Backup Original
 After Organizing it is advised that you make a backup since data may be lost or corrupted during the rest of the steps. We use a compression tool to create a zip, rar, etc and rename it to the experiment and the data. This zip is stored on our working device and a separate SSD.
@@ -285,11 +283,6 @@ After Organizing it is advised that you make a backup since data may be lost or 
 > This setup is optional. However, since recollection the data will probably take a lot of time or is sometime not possible... please create a backup for your own sanity. 
 
 ## PreProcessing
-
-- [x] Meta-Data extraction
-- [x] Renaming
-- [x] Strip Audio
-- [x] Lower resolution and optimize resolution
 
 ### Meta-Data Extraction
 For further processing steps, we will need more information about the videos. to extract this data we will use FFprobe, which is included with the installation of FFmpeg. The Meta-data will be used as part of the naming convention and be saved in a separate JSON file.
@@ -322,8 +315,6 @@ ffmpeg -i filename.mp4 -c copy -an filename-an.mp4
 ### Adjust resolution, minimize quality loss
 For our application, we prefer a lower-resolution video. To achieve this we execute the following code snippet:
 
-<!-- https://img.ly/blog/ultimate-guide-to-ffmpeg/
-h.264 codec (yuv420p) -->
 
 ```bash
 ffmpeg -y -r {fps} -i {root}/{filename_new} -c:v libx264 -profile:v high -vf scale={W}:{H} -preset slow -crf 23 -an {filename_processed}'
@@ -345,13 +336,6 @@ Arguments Explained:
 | Last argument   | Output filename                                         |
 
 ## Motion Magnification
-
-- [x] overview
-- [x] WUEB-VMM
-- [x] LB-VMM
-- [x] STB-VMM
-- [x] add skip for if processed
-- [x] do for selected Amplification factors 
 
 ### Overview
 During the Motion Magnification step, the pipeline will process every video with the selected settings. With the default settings, one input file will generate 9 output files. If you want to change the output please take a look at main.py.
@@ -418,13 +402,6 @@ Popen(f'bash {entrypoint} -mag {MF} -i {input_location} \
 
 ## PostProcessing
 
-- [x] 2x2 video grid
-    - [x] normal and all magnifications factor of 1 method
-    - [x] same magnification factor of all methods
-    - [x] add check for if already done for both above and if yes skip
-- [x] FFT graph
-- [x] frequency table
-
 ### 2x2 video grid
 The code below will make a 2x2 video grid to help with human evaluation. This is done in the postprocessing of the pipeline by default for all magnification factors of one method (original + up to three) and all methods of one magnification factor (original + up to three).
 
@@ -464,33 +441,32 @@ Popen(f'ffmpeg -r {fps} \
 
 ```
 
-
 ## Evaluation Output
-When the process is done, the files will all be gathered in the output folder. 
 
-The files included for every input video are:
+After the process is done, the [results.py](/results.py) file can be used to generate an overview of results per experiment. Within the [examples folder](/examples/output/evaluated/) you can find examples of the files used to generate this overview.
 
-- [x] Original video
-- [x] Original video metadata
-- [x] Region of intrest (RoI) for video
-- [x] Compressed video
-- [x] Magnified versions of compressed video based on selection
-    - by default 3, 5, and 10 factor
-    - by default WUEB, LB, and STB method
-    - for a total of 9 videos
-- [x] a 2x2 grid of original video 3, 5, 10 @ of one method
-    - by default a total of 3 grids
-- [x] a 2x2 grid of original video with one magnification factor for every method
-    - by default a total of 3 grids
-- [x] for every video mentioned
-    - [x] x and y displacement data of feature within RoI
-        - [x] raw data and graph
-        - [x] max and min of both x and y
-    - [x] FFT created for this displacement 
-        - [x] raw data and graph
-        - [x] top 10 frequencies with the highest amplitude
-- [x] ctrl displacement measurement (with sensor) to compare
-    - [x] FFT created for this displacement 
-        - [x] raw data and graph
-        - [x] top 10 frequencies with the highest amplitude
-- [x] human evaluation has to be done manually
+# Examples
+
+The example folder is divided into three components. First we have the [Video Capture plan with data](/examples/VCP_including_data.xlsx) which includes the initial plan and an overview of the results. Within the input folder, you can find the data used as input for the experiments. The output folder contains the output of the process, excluding the merged videos due to file size limitations.
+
+# Bonus
+WOUW BONUS
+
+## MM selection.
+
+
+| Method | Origin   | Working | Complete | Selected | 
+|---|---|---|---| ---|
+| STB-VMM    | [Github](https://github.com/RLado/STB-VMM)  | yes | yes | yes |
+| Learning based    | [Github](https://github.com/cgst/motion-magnification)  | yes | yes | yes |
+| Eulerian Video Magnification    | [Github](https://github.com/hbenbel/Eulerian-Video-Magnification)  | yes | yes | yes |
+| Learning based    | [Github](https://github.com/12dmodel/deep_motion_mag)  | no | yes | no |
+| Learning based   | [Github](https://github.com/ZhengPeng7/motion_magnification_learning-based)  | yes | yes | no |
+| Self-Supervised Motion Magnification    | [Github](https://github.com/dangeng/flowmag)  | no | no  | no
+| Live Motion Magnification    | [Github](https://github.com/tschnz/Live-Video-Magnification/tree/master)  | no | ? | no |
+| Event-Based Motion Magnification    | [Github](https://github.com/OpenImagingLab/emm)  | no | yes | no|
+| Robust Eulerian Motion Magnification     | [Github](https://github.com/VUT-HFUT/EulerMormer)  | no | ? | no|
+| Video Acceleration Magnification    | [Github](https://github.com/acceleration-magnification/sources)  | no | yes | no|
+| Motion-Magnification    | [Github](https://github.com/mzhao98/Motion-Magnification)  | no | yes | no|
+| Magnification | [Github](https://github.com/saracen/magnification) | no | ? | no
+| Phase Based | [Github](https://github.com/itberrios/phase_based/tree/main) | yes | yes | no

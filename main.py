@@ -33,9 +33,10 @@ def main():
     print(f'The following expiriments are found: \n {edm.experiments_info}')        
     print('Start processing experiments that are not processed yet:')
     
+    # If you want to skip steps you could comment that step in the for loop
     for experiment in edm.to_process:        
-        # prep.process(input_location, experiment, processed_location, preprocess_resolution,preprocess_extension)
-        # mm.process(str.replace(input_location,'input',processed_location), experiment, magnified_location, MFS, VMMS)        
+        prep.process(input_location, experiment, processed_location, preprocess_resolution,preprocess_extension)
+        mm.process(str.replace(input_location,'input',processed_location), experiment, magnified_location, MFS, VMMS)        
         evaluate.process(str.replace(input_location,'input',processed_location), experiment, processed_location, evaluted_location)
         evaluate.process(str.replace(input_location,'input',magnified_location), experiment, magnified_location ,evaluted_location)    
         postp.process(str.replace(input_location,'input',processed_location), experiment, merged_location, MFS)
