@@ -1,0 +1,8 @@
+torch
+torchvision
+tqdm
+matplotlib
+torchsummary
+clize
+moviepy
+pillow

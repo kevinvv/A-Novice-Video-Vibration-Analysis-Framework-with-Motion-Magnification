@@ -1,0 +1,12 @@
+clize
+moviepy
+numpy==1.21.2
+opencv_python==4.5.3.56
+scipy==1.7.1
+tqdm==4.62.3
+Pillow==10.0.1
+matplotlib
+torch==2.1.0+cu121 
+torchvision==0.16.0+cu121
+torchsummary
+kaleido
